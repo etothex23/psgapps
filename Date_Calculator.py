@@ -22,14 +22,12 @@ class DateCalculator:
                              Sg.Input(self.getsdate(), 12, key='-DATE-', enable_events=True, pad=(10, 10),
                                       text_color='#e2f0c6', background_color='#323232', border_width=2,
                                       justification='right'),
-                             # Sg.Text(self.getsdate(), text_color='#ecf5da', background_color='#323232',
-                             #         pad=(10, 10), key='cdate', border_width=2, relief='sunken', enable_events=True),
                              Sg.CalendarButton('Choose Date', target='-DATE-', key='-CALENDAR-', metadata='',
                                                button_color=("#eeeeee", "#5c5c5c"), format=('%m / %d / %Y'))],
                             [Sg.Text(' Days to +/-: ', text_color='#e2f0c6', background_color='#323232',
                                      pad=(10, 10), border_width=0, expand_x=True),
                              Sg.Input(0, 5, key='-INPUT-', enable_events=True, pad=(10, 10),
-                                          background_color='#ffffff', border_width=1, justification='right')],
+                                      background_color='#ffffff', border_width=1, justification='right')],
                             [Sg.Text('Past Date: ', text_color='#e2f0c6', background_color='#323232',
                                      pad=(10, 10), border_width=0, expand_x=True),
                              Sg.Text(self.getsdate('p'), text_color='#ecf5da', background_color='#323232', pad=(10, 10),
@@ -57,16 +55,19 @@ class DateCalculator:
         else:
             return datetime.strftime(self.current_date, self.d_format)
 
+    def getddate(self, datetoparse):
+        return datetime.strptime(datetoparse, self.d_format)
+
     def select_text(self, event=None):
-        print(event)
-        self.calculator['-INPUT-'].Update('')
         self.calculator['-INPUT-'].Widget.config(background='#edffd3')
         self.calculator['-INPUT-'].Widget.selection_range(0, 'end')
+        self.calculator['-INPUT-'].set_focus(force=True)
 
     def change_back(self):
         self.calculator['-INPUT-'].Widget.config(background='#ffffff')
 
     def set_and_calc(self):
+        self.current_date = self.getddate(self.calculator['-DATE-'].get())
         self.future_date = self.current_date + timedelta(days=self.days_to_add)
         self.past_date = self.current_date + timedelta(days=-self.days_to_add)
         self.calculator['fdate'].update(self.getsdate('f'))
@@ -76,33 +77,30 @@ class DateCalculator:
         self.calculator['-INPUT-'].Widget.bind('<Button-1>', self.select_text)
 
     def exec_calc(self) -> None:
-        print('exec')
         self.init_date_calc()
+        self.select_text()
         while True:  # The Event Loop
             self.e, self.v = self.calculator.read()
             temp = self.v['-INPUT-']
-            print('while')
-            print(self.e)
-            print(self.v)
             if self.e == Sg.WIN_CLOSED or self.e == 'Exit':
                 break
-            elif self.e == '-INPUT-' and not temp.isdigit():
-                #self.select_text()
-                self.calculator['-INPUT-'].update(0)
-                self.change_back()
-                self.calculator['-INPUT-'].Widget.selection_range(0, 'end')
-            elif self.e == '-INPUT-' and temp.isdigit():
-                # if 0 or first digit is 0
-                self.change_back()
-                self.days_to_add = int(temp) if temp.isdigit() else 0
-                self.set_and_calc()
+            elif self.e == '-INPUT-':
+                if not temp.isdigit():
+                    self.calculator['-INPUT-'].update(0)
+                    self.select_text()
+                elif temp.isdigit():
+                    if temp[0] == '0':
+                        self.select_text()
+                    else:
+                        self.change_back()
+                        self.days_to_add = int(temp)
+                        self.set_and_calc()
             elif self.e == '-CALC-':
                 self.days_to_add = int(temp) if temp.isdigit() else 0
                 self.set_and_calc()
             elif self.e == '-DATE-':
                 self.select_text()
-                print(self.e)
-                print(self.v)
+                self.set_and_calc()
 
         self.calculator.close()
 
